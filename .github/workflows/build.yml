@@ -8,13 +8,15 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.0.app
+      - name: Show Xcode versions
+        run: |
+          xcodebuild -version
+          ls /Applications | grep -i xcode || true
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -24,17 +26,23 @@ jobs:
 
       - name: Archive (unsigned)
         run: |
+          set -o pipefail
           xcodebuild archive \
             -project PostBank.xcodeproj \
             -scheme PostBank \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -configuration Release \
             -archivePath build/PostBank.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="" \
-            | xcpretty || true
+            DEVELOPMENT_TEAM=""
+
+      - name: Verify archive
+        run: |
+          ls -la build/ || true
+          find build/PostBank.xcarchive -maxdepth 4 -name "*.app" || true
 
       - name: Package unsigned IPA
         run: |
